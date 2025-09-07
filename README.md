@@ -1,13 +1,20 @@
 # OpenLDAP Ansible Playbook
 
 ## Описание
-Этот плейбук Ansible разворачивает OpenLDAP сервер на Ubuntu LTS.  
+Этот плейбук Ansible разворачивает OpenLDAP сервер на Ubuntu LTS и включает overlay модули `refint` и `memberof`.
 Он выполняет следующие действия:
 
 - Устанавливает OpenLDAP и необходимые утилиты (`slapd`, `ldap-utils`)
-- Установливает и удаляет утилиты для работы playbook (`debconf-utils`)
+- Устанавливает и удаляет утилиты для работы playbook (`debconf-utils`)
 - Настраивает домен и организацию LDAP
 - Задаёт пароль администратора LDAP
+- Загружает модули:
+  - `refint`
+  - `memberof`
+- Применяет overlay:
+  - `refint`
+  - `memberof`
+- Создаёт ACL для LDAP
 - Создаёт организационные единицы (OU):
   - `People`
   - `Groups`
@@ -21,16 +28,18 @@
 ### Структура LDAP после выполнения playbook
 
 ```
-dc=example,dc=com
-│
-├── ou=People
-│   ├─ uid=user1
-│   └── uid=user2
-│
-└── ou=Groups
-├── cn=group1 (memberUid: user1)
+
+dc=example,dc=com  
+│  
+├── ou=People  
+│ ├─ uid=user1  
+│ └── uid=user2  
+│  
+└── ou=Groups  
+├── cn=group1 (memberUid: user1)  
 └── cn=group2 (memberUid: user2)
-```
+
+````
 
 ### Файл vars.yml
 
@@ -70,7 +79,7 @@ groups:
     gidNumber: 5002
     members:
       - user2
-```
+````
 
 ---
 
@@ -102,7 +111,7 @@ ssh-copy-id 192.168.1.110
 ansible-playbook -i hosts.ini ldap-setup.yml --ask-become-pass
 ```
 
-5. Проверка успешного добавления пользователей:
+5. Проверка успешного добавления пользователей и overlay:
 ![вывод](final.jpg)
 ```text
 TASK [Проверка аутентификации пользователя user1] ***************************************
@@ -122,5 +131,4 @@ ok: [192.168.1.110] => {
 }
 ```
 
-> Если эти задачи прошли успешно, OpenLDAP настроен корректно и пользователи могут аутентифицироваться.
-
+> Если эти задачи прошли успешно, OpenLDAP настроен корректно: пользователи могут аутентифицироваться, overlay модули `refint` и `memberof` активированы, и ACL применены.
