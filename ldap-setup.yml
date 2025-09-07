@@ -39,6 +39,22 @@
 
     - name: Применяем настройки slapd
       command: dpkg-reconfigure -f noninteractive slapd
+      
+    - name: Добавляем acl
+      template:
+        src: acl.ldif
+        dest: /tmp/acl.ldif
+
+    - name: Применяем ACL через ldapmodify
+      command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/acl.ldif
+      register: acl_modify
+      changed_when: "'modifying entry' in acl_modify.stdout"
+      ignore_errors: yes
+
+    - name: Удаляем /tmp/acl.ldif
+      file:
+        path: /tmp/acl.ldif
+        state: absent  
 
     - name: Генерация base.ldif
       template:
@@ -48,6 +64,11 @@
     - name: Добавляем организационные единицы
       command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/base.ldif
       ignore_errors: yes
+
+    - name: Удаляем /tmp/base.ldif
+      file:
+        path: /tmp/base.ldif
+        state: absent
 
     - name: Удаляем /tmp/base.ldif
       file:
