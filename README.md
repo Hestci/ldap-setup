@@ -79,7 +79,7 @@ groups:
 1. Склонировать репозиторий:
 
 ```bash
-git clone [https://your-repo/ldap-setup.git](https://github.com/Hestci/ldap-setup.git)
+git clone https://github.com/Hestci/ldap-setup.git
 cd ldap-setup
 ```
 
