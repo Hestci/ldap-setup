@@ -39,6 +39,64 @@
 
     - name: Применяем настройки slapd
       command: dpkg-reconfigure -f noninteractive slapd
+
+    - name: Загрузка модуля refint
+      copy:
+        content: |
+          dn: cn=module{0},cn=config
+          changetype: modify
+          add: olcModuleLoad
+          olcModuleLoad: refint
+        dest: /tmp/load_refint.ldif
+
+    - name: Применяем загрузку модуля refint
+      command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/load_refint.ldif
+      ignore_errors: yes
+
+    - name: Загрузка модуля memberof
+      copy:
+        content: |
+          dn: cn=module{0},cn=config
+          changetype: modify
+          add: olcModuleLoad
+          olcModuleLoad: memberof
+        dest: /tmp/load_memberof.ldif
+
+    - name: Применяем загрузку модуля memberof
+      command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/load_memberof.ldif
+      ignore_errors: yes
+
+    - name: Генерация LDIF для refint overlay
+      copy:
+        src: templates/refint_overlay.ldif
+        dest: /tmp/refint_overlay.ldif
+
+    - name: Применяем refint overlay
+      command: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/refint_overlay.ldif
+      register: refint_apply
+      changed_when: "'adding new entry' in refint_apply.stdout"
+      ignore_errors: yes
+
+    - name: Удаляем временный файл refint overlay
+      file:
+        path: /tmp/refint_overlay.ldif
+        state: absent
+
+    - name: Генерация LDIF для memberof overlay
+      copy:
+        src: templates/memberof_overlay.ldif
+        dest: /tmp/memberof_overlay.ldif
+
+    - name: Применяем memberof overlay
+      command: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/memberof_overlay.ldif
+      register: memberof_apply
+      changed_when: "'adding new entry' in memberof_apply.stdout"
+      ignore_errors: yes
+
+    - name: Удаляем временный файл memberof overlay
+      file:
+        path: /tmp/memberof_overlay.ldif
+        state: absent
       
     - name: Добавляем acl
       template:
