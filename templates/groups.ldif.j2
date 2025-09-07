@@ -1,0 +1,13 @@
+{% for group in ldap_groups %}
+dn: cn={{ group.cn }},ou=groups,{{ ldap_base_dn }}
+objectClass: top
+objectClass: posixGroup
+cn: {{ group.cn }}
+gidNumber: {{ group.gidNumber }}
+{% if group.members is defined and group.members %}
+{% for member in group.members %}
+memberUid: {{ member }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}

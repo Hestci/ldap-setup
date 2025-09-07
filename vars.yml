@@ -1,0 +1,32 @@
+ldap_domain: "example.com"
+ldap_org: "ExampleOrg"
+ldap_admin_pass: "adminpass"
+ldap_base_dn: "dc=example,dc=com"
+
+users:
+  - uid: user1
+    cn: "User One"
+    sn: User1
+    uidNumber: 10001
+    gidNumber: 5001
+    homeDirectory: "/home/user1"
+    loginShell: "/bin/bash"
+    password: "user1pass"
+  - uid: user2
+    cn: "User Two"
+    sn: User2
+    uidNumber: 10002
+    gidNumber: 5002
+    homeDirectory: "/home/user2"
+    loginShell: "/bin/bash"
+    password: "user2pass"
+
+ldap_groups:
+  - cn: group1
+    gidNumber: 5001
+    members:
+      - user1
+  - cn: group2
+    gidNumber: 5002
+    members:
+      - user2

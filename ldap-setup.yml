@@ -1,0 +1,105 @@
+- name: Установка OpenLDAP на Ubuntu LTS
+  hosts: ldap-server
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Установка LDAP сервера и утилит 
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - slapd
+        - ldap-utils
+        - debconf-utils
+
+    - name: Предварительная настройка slapd через debconf
+      debconf:
+        name: slapd
+        question: "{{ item.question }}"
+        value: "{{ item.value }}"
+        vtype: "{{ item.vtype }}"
+      loop:
+        - { question: "slapd/internal/generated_adminpw", value: "{{ ldap_admin_pass }}", vtype: "password" }
+        - { question: "slapd/internal/adminpw", value: "{{ ldap_admin_pass }}", vtype: "password" }
+        - { question: "slapd/password1", value: "{{ ldap_admin_pass }}", vtype: "password" }
+        - { question: "slapd/password2", value: "{{ ldap_admin_pass }}", vtype: "password" }
+        - { question: "slapd/domain", value: "{{ ldap_domain }}", vtype: "string" }
+        - { question: "slapd/organization", value: "{{ ldap_org }}", vtype: "string" }
+        - { question: "slapd/no_configuration", value: "false", vtype: "boolean" }
+        - { question: "slapd/purge_database", value: "false", vtype: "boolean" }
+        - { question: "slapd/move_old_database", value: "true", vtype: "boolean" }
+
+    - name: Удаляем debconf-utils после завершения
+      apt:
+        name: debconf-utils
+        state: absent
+
+    - name: Применяем настройки slapd
+      command: dpkg-reconfigure -f noninteractive slapd
+
+    - name: Генерация base.ldif
+      template:
+        src: base.ldif.j2
+        dest: /tmp/base.ldif
+
+    - name: Добавляем организационные единицы
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/base.ldif
+      ignore_errors: yes
+
+    - name: Удаляем /tmp/base.ldif
+      file:
+        path: /tmp/base.ldif
+        state: absent
+
+    - name: Генерация users.ldif
+      template:
+        src: users.ldif.j2
+        dest: /tmp/users.ldif
+
+    - name: Добавляем пользователей
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/users.ldif
+      ignore_errors: yes
+
+    - name: Удаляем /tmp/users.ldif
+      file:
+        path: /tmp/users.ldif
+        state: absent
+
+    - name: Генерация groups.ldif
+      template:
+        src: groups.ldif.j2
+        dest: /tmp/groups.ldif
+
+    - name: Добавляем группы
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/groups.ldif
+      ignore_errors: yes
+
+    - name: Удаляем /tmp/groups.ldif
+      file:
+        path: /tmp/groups.ldif
+        state: absent
+        
+    - name: Проверка аутентификации пользователя user1
+      command: >
+        ldapwhoami -x -D "uid=user1,ou=People,{{ ldap_base_dn }}" -w "{{ users | selectattr('uid', 'equalto', 'user1') | map(attribute='password') | first }}"
+      register: ldap_auth_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Вывод результата аутентификации
+      debug:
+        msg: "{{ ldap_auth_check.stdout }}"
+
+    - name: Проверка аутентификации пользователя user2
+      command: >
+        ldapwhoami -x -D "uid=user2,ou=People,{{ ldap_base_dn }}" -w "{{ users | selectattr('uid', 'equalto', 'user2') | map(attribute='password') | first }}"
+      register: ldap_auth_check2
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Вывод результата аутентификации user2
+      debug:
+        msg: "{{ ldap_auth_check2.stdout }}"
