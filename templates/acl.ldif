@@ -5,7 +5,7 @@ olcAccess: {0}to attrs=userPassword
   by self write
   by anonymous auth
   by dn.exact="cn=admin,dc=example,dc=com" write
-  by * none
+  by * auth
 olcAccess: {1}to *
   by dn.exact="cn=admin,dc=example,dc=com" manage
   by users read
