@@ -3,6 +3,7 @@
   become: yes
   vars_files:
     - vars.yml
+    - vault.yml  
   roles:
     - openldap
     - openldap-modules

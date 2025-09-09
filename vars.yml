@@ -1,6 +1,5 @@
 ldap_domain: "example.com"
 ldap_org: "ExampleOrg"
-ldap_admin_pass: "adminpass"
 ldap_base_dn: "dc=example,dc=com"
 
 users:
@@ -11,7 +10,7 @@ users:
     gidNumber: 5001
     homeDirectory: "/home/user1"
     loginShell: "/bin/bash"
-    password: "user1pass"
+    password: "{{ user_passwords.user1 }}"
   - uid: user2
     cn: "User Two"
     sn: User2
@@ -19,7 +18,7 @@ users:
     gidNumber: 5002
     homeDirectory: "/home/user2"
     loginShell: "/bin/bash"
-    password: "user2pass"
+    password: "{{ user_passwords.user2 }}"
 
 ldap_groups:
   - cn: group1

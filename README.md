@@ -31,13 +31,27 @@ ssh-copy-id 192.168.1.110
 192.168.1.110 ansible_user=hest
 ```
 
-4. Запустить playbook и ввести пароль sudo:
+4. Создать зашифрованный файл с секретами:
 
-```bash
-ansible-playbook -i hosts.ini ldap-setup.yml --ask-become-pass
+``` bash
+ansible-vault create vault.yml
 ```
 
-5. Проверка успешного добавления пользователей:
+Внутри vault.yml можно хранить, например:
+```yaml
+ldap_admin_pass: "adminpass"
+user_passwords:
+  user1: "user1pass"
+  user2: "user2pass"
+```
+
+5. Запустить playbook и ввести пароль sudo и пароль от vault.yml:
+
+```bash
+ansible-playbook -i hosts.ini ldap-setup.yml --ask-become-pass --ask-vault-pass
+```
+
+6. Проверка успешного добавления пользователей:
 ```text
 TASK [openldap-verify : Проверка аутентификации пользователей] ***************************
 ok: [192.168.1.110] => (item={'uid': 'user1', 'cn': 'User One', 'sn': 'User1', 'uidNumber': 10001, 'gidNumber': 5001, 'homeDirectory': '/home/user1', 'loginShell': '/bin/bash', 'password': 'user1pass'})
