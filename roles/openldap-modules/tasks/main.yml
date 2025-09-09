@@ -1,0 +1,45 @@
+---
+- name: Копируем шаблоны overlay на сервер
+  template:
+    src: "{{ item }}"
+    dest: "/tmp/{{ item }}"
+  loop:
+    - "refint_overlay.ldif"
+    - "memberof_overlay.ldif"
+
+- name: Загрузка модулей refint и memberof
+  copy:
+    content: "{{ item.content }}"
+    dest: "/tmp/{{ item.name }}.ldif"
+  loop:
+    - { name: "load_refint", content: "dn: cn=module{0},cn=config\nchangetype: modify\nadd: olcModuleLoad\nolcModuleLoad: refint" }
+    - { name: "load_memberof", content: "dn: cn=module{0},cn=config\nchangetype: modify\nadd: olcModuleLoad\nolcModuleLoad: memberof" }
+
+- name: Применяем ldif для модулей
+  command: ldapmodify -Y EXTERNAL -H ldapi:/// -f "{{ item }}"
+  loop:
+    - /tmp/load_refint.ldif
+    - /tmp/load_memberof.ldif
+  ignore_errors: yes
+
+- name: Применяем overlay refint
+  command: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/refint_overlay.ldif
+  register: refint_apply
+  changed_when: "'adding new entry' in refint_apply.stdout"
+  ignore_errors: yes
+
+- name: Применяем overlay memberof
+  command: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/memberof_overlay.ldif
+  register: memberof_apply
+  changed_when: "'adding new entry' in memberof_apply.stdout"
+  ignore_errors: yes
+
+- name: Очищаем временные файлы
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  loop:
+    - load_refint.ldif
+    - load_memberof.ldif
+    - refint_overlay.ldif
+    - memberof_overlay.ldif

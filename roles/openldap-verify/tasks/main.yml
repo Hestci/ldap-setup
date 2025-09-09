@@ -1,0 +1,8 @@
+---
+- name: Проверка аутентификации пользователей
+  command: >
+    ldapwhoami -x -D "uid={{ item.uid }},ou=People,{{ ldap_base_dn }}" -w "{{ item.password }}"
+  with_items: "{{ users }}"
+  register: ldap_auth_check
+  changed_when: false
+  ignore_errors: yes

@@ -1,0 +1,43 @@
+---
+- name: Настройка LDAP конфигураций
+  block:
+    - name: Создание временных LDIF файлов
+      template:
+        src: "{{ item.src }}"
+        dest: "/tmp/{{ item.dest }}"
+      loop:
+        - { src: "acl.ldif", dest: "acl.ldif" }
+        - { src: "base.ldif.j2", dest: "base.ldif" }
+        - { src: "users.ldif.j2", dest: "users.ldif" }
+        - { src: "groups.ldif.j2", dest: "groups.ldif" }
+      loop_control:
+        label: "{{ item.src }}"
+
+    - name: Применяем ACL
+      command: ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/acl.ldif
+      register: acl_modify
+      changed_when: "'modifying entry' in acl_modify.stdout"
+      ignore_errors: yes
+
+    - name: Добавляем OU
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/base.ldif
+      ignore_errors: yes
+
+    - name: ldapadd users
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/users.ldif
+      ignore_errors: yes
+
+    - name: ldapadd groups
+      command: ldapadd -x -D "cn=admin,{{ ldap_base_dn }}" -w "{{ ldap_admin_pass }}" -f /tmp/groups.ldif
+      ignore_errors: yes
+
+  always:
+    - name: Очистка временных файлов
+      file:
+        path: "/tmp/{{ item }}"
+        state: absent
+      loop:
+        - acl.ldif
+        - base.ldif
+        - users.ldif
+        - groups.ldif
